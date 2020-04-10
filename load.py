@@ -38,6 +38,7 @@ PROPERTIES = {
     'Países de residencia': 'country',
     'Nacionalidades': 'nationality',
     'Información adicional': 'sourceUrl',
+    'Tipos de negocio ilegal': 'classification',
     'Tipo': 'type',
     'Cargo': 'category',
     'Fecha': 'fileDate',
@@ -52,19 +53,17 @@ PROPERTIES = {
     'Tipo de participación': 'ownershipType',
     'Porcentaje de participación': 'percentage',
     'Percentage ownership': 'role',
-    # AAaaa:
-    'Source': 'indexText',
 }
 
 RELATIONS = {
     'Asociado con': ('Associate', 'person', 'associate', 'relationship'),
-    'Dueño de empresas': ('Ownership', 'asset', 'owner', 'role'),
-    'Dueño de propiedades': ('Ownership', 'asset', 'owner', 'role'),
-    'Tiene como dueño de empresa': ('Ownership', 'owner', 'asset', 'role'),
-    'Tiene como dueño de propiedad': ('Ownership', 'asset', 'owner', 'role'),
+    'Dueño de empresas': ('Ownership', 'owner', 'asset', 'role'),
+    'Dueño de propiedades': ('Ownership', 'owner', 'asset', 'role'),
+    # 'Tiene como dueño de empresa': ('Ownership', 'owner', 'asset', 'role'),
+    # 'Tiene como dueño de propiedad': ('Ownership', 'asset', 'owner', 'role'),
     'Documentos relacionados': ('UnknownLink', 'subject', 'object', 'role'),
-    'Relacionada con': ('UnknownLink', 'object', 'subject', 'role'),
-    'Acusado por': ('CourtCaseParty', 'party', 'case', 'role'),
+    # 'Relacionada con': ('UnknownLink', 'object', 'subject', 'role'),
+    # 'Acusado por': ('CourtCaseParty', 'party', 'case', 'role'),
     'Acusado': ('CourtCaseParty', 'case', 'party', 'role'),
 }
 
@@ -84,7 +83,6 @@ def upload_document(root_path, documents, api, cid, document, title=None):
 
 
 def make_node(root_path, documents, api, cid, entity):
-    return
     entity_id = entity.pop('id')
     resource, _ = entity_id.split('/')
     schema = RESOURCES.get(resource)
@@ -106,13 +104,6 @@ def make_node(root_path, documents, api, cid, entity):
                 dproxy.add('role', section)
                 yield dproxy
                 continue
-            if section == 'Tipos de negocio ilegal':
-                sanction = model.make_entity('Sanction')
-                sanction.make_id(proxy.id, section, value)
-                sanction.add('entity', proxy)
-                sanction.add('reason', value)
-                yield sanction
-                continue
             if section == 'Organización o célula':
                 org = model.make_entity('Organization')
                 org.make_id('organization', value)
@@ -132,7 +123,7 @@ def make_node(root_path, documents, api, cid, entity):
                 yield spouse
                 family = model.make_entity('Family')
                 family.make_id('family', proxy.id, spouse.id)
-                family.add('person', spouse)
+                family.add('person', proxy)
                 family.add('relative', spouse)
                 family.add('relationship', section)
                 yield family
@@ -144,12 +135,14 @@ def make_node(root_path, documents, api, cid, entity):
             if schema == 'Company' and prop == 'summary':
                 proxy.add('jurisdiction', value, quiet=True)
 
-    print(proxy)
+    print(repr(proxy))
     yield proxy
 
 
 def make_relation(root_path, documents, api, cid, entity):
     relation = entity.pop('relation')
+    if relation not in RELATIONS:
+        return
     schema, subject_prop, object_prop, prop = RELATIONS.get(relation)
     proxy = model.make_entity(schema)
     proxy.make_id(entity.pop('edge'))
@@ -173,7 +166,7 @@ def make_relation(root_path, documents, api, cid, entity):
                 prop = 'relationship'
             proxy.add(prop, value)
 
-    print(proxy)
+    print(repr(proxy))
     yield proxy
 
 
