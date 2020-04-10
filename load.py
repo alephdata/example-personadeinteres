@@ -76,7 +76,7 @@ def upload_document(root_path, documents, api, cid, document, title=None):
     full_path = Path(os.path.join(root_path, rel_path))
     if not os.path.exists(full_path):
         return
-    metadata = {'file_name': file_name, title: title}
+    metadata = {'file_name': file_name, 'title': title}
     res = api.ingest_upload(cid, full_path, metadata)
     print("Uploaded [%s]: %r" % (file_name, res))
     documents[rel_path] = res.get('id')
